@@ -1,26 +1,9 @@
 import os
-import time
 import json
 import urllib.request
 import random
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from threading import Thread
 
-# Render port tələbini qarşılamaq və 7/24 aktiv saxlamaq üçün veb server
-class SimpleHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Cosqun Bot Full Combo Analysis Active!")
-
-def run_server():
-    port = int(os.environ.get("PORT", 10000))
-    server = HTTPServer(("0.0.0.0", port), SimpleHandler)
-    server.serve_forever()
-
-Thread(target=run_server, daemon=True).start()
-
-# Telegram Bot Tokeni
 TOKEN = "8945130144:AAFy3yBd_VSSsc4zujbqz0ZuLkf_D-rVWUc"
 URL = f"https://api.telegram.org/bot{TOKEN}/"
 
@@ -36,7 +19,6 @@ def send_message(chat_id, text):
 def generate_chain_linked_analysis(query):
     random.seed(hash(query) % 10000)
     
-    # Zəncirvari dəqiq hesab ssenariləri
     scenarios = [
         {"h": 2, "a": 1, "ht_h": 1, "ht_a": 0, "htft": "1 / 1", "ms": "MS 1", "dc": "1X", "tot": 3, "btts": "Bəli"},
         {"h": 1, "a": 0, "ht_h": 1, "ht_a": 0, "htft": "1 / 1", "ms": "MS 1", "dc": "1X", "tot": 1, "btts": "Xeyr"},
@@ -59,13 +41,11 @@ def generate_chain_linked_analysis(query):
     parts = clean_query.split("/")
     match_title = parts[-1].replace("-", " ").upper() if len(parts) > 0 and len(parts[-1]) > 3 else query.upper()
 
-    # Zəncirvari kombi nəticələrinin məntiqi hesablanması
     btts_yes_p = random.randint(55, 82) if btts_val == "Bəli" else random.randint(20, 42)
     btts_no_p = 100 - btts_yes_p
 
     w1_btts_yes = "Gözlənilir" if (is_home_win and btts_val == "Bəli") else "Risklidir"
     w1_btts_no = "Gözlənilir" if (is_home_win and btts_val == "Xeyr") else "Risklidir"
-    
     w2_btts_yes = "Gözlənilir" if (is_away_win and btts_val == "Bəli") else "Risklidir"
     w2_btts_no = "Gözlənilir" if (is_away_win and btts_val == "Xeyr") else "Risklidir"
 
@@ -86,10 +66,10 @@ def generate_chain_linked_analysis(query):
 • <b>Kornerlər:</b> {random.randint(8, 11)}.5-dən Çox
 
 🔥 <b>3. KOMANDA & BTTS KOMBİNASİYALARI:</b>
-• <b>1 & BTTS (Yes):</b> {w1_btts_yes} (%{random.randint(45, 75) if is_home_win and btts_val=='Bəli' else random.randint(10, 30)})
-• <b>1 & BTTS (No):</b> {w1_btts_no} (%{random.randint(45, 75) if is_home_win and btts_val=='Xeyr' else random.randint(10, 30)})
-• <b>2 & BTTS (Yes):</b> {w2_btts_yes} (%{random.randint(45, 75) if is_away_win and btts_val=='Bəli' else random.randint(10, 30)})
-• <b>2 & BTTS (No):</b> {w2_btts_no} (%{random.randint(45, 75) if is_away_win and btts_val=='Xeyr' else random.randint(10, 30)})
+• <b>1 & BTTS (Yes):</b> {w1_btts_yes}
+• <b>1 & BTTS (No):</b> {w1_btts_no}
+• <b>2 & BTTS (Yes):</b> {w2_btts_yes}
+• <b>2 & BTTS (No):</b> {w2_btts_no}
 
 ⚡ <b>4. KOMANDA & ALT/ÜST KOMBİNASİYALARI:</b>
 • <b>1 & 1.5 Üst:</b> {'Gözlənilir' if (is_home_win and total_goals >= 2) else 'Riskli'}
@@ -107,50 +87,47 @@ def generate_chain_linked_analysis(query):
 ---
 ✨ <b>Coşqun Təxmini-</b>"""
 
-def main():
-    offset = 0
-    processed_messages = set()
-    print("Coşqun Kombi Zəncirvari Analiz Botu 7/24 işləyir...")
-    
-    while True:
+class WebhookHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Cosqun Bot Webhook Server is Active!")
+
+    def do_POST(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
         try:
-            url = f"{URL}getUpdates?offset={offset}&timeout=30"
-            req = urllib.request.urlopen(url, timeout=35)
-            updates = json.loads(req.read().decode("utf-8"))
-            
-            if updates and isinstance(updates, dict) and "result" in updates:
-                for update in updates["result"]:
-                    update_id = update["update_id"]
-                    offset = update_id + 1
-                    
-                    message = update.get("message")
-                    if message and "text" in message:
-                        msg_id = message["message_id"]
-                        chat_id = message["chat"]["id"]
-                        user_text = message["text"].strip()
-                        
-                        if msg_id in processed_messages:
-                            continue
-                        processed_messages.add(msg_id)
-                        
-                        if len(processed_messages) > 100:
-                            processed_messages.pop()
-                        
-                        if user_text.lower() == "/start":
-                            reply_text = (
-                                "<b>⚽ Salam! Coşqun Kombi Analiz Botuna xoş gəlmisiniz.</b>\n\n"
-                                "Mənə matç linki göndərin; dəqiq hesaba əsaslanan <b>BTTS, 1 & BTTS, 2 & BTTS, "
-                                "komanda qələbəsi ilə alt/üst kombinasiyaları</b> və bütün zəncirvari proqnozları təqdim edim!\n\n"
-                                "<i>Coşqun Təxmini-</i>"
-                            )
-                            send_message(chat_id, reply_text)
-                        else:
-                            analysis = generate_chain_linked_analysis(user_text)
-                            send_message(chat_id, analysis)
+            json_data = json.loads(post_data.decode('utf-8'))
+            if "message" in json_data:
+                message = json_data["message"]
+                chat_id = message["chat"]["id"]
+                user_text = message.get("text", "").strip()
+                
+                if user_text:
+                    if user_text.lower() == "/start":
+                        reply_text = (
+                            "<b>⚽ Salam! Coşqun Kombi Analiz Botuna xoş gəlmisiniz.</b>\n\n"
+                            "Mənə matç linki göndərin; dəqiq hesaba əsaslanan <b>BTTS, 1 & BTTS, 2 & BTTS, "
+                            "komanda qələbəsi ilə alt/üst kombinasiyaları</b> və bütün zəncirvari proqnozları təqdim edim!\n\n"
+                            "<i>Coşqun Təxmini-</i>"
+                        )
+                        send_message(chat_id, reply_text)
+                    else:
+                        analysis = generate_chain_linked_analysis(user_text)
+                        send_message(chat_id, analysis)
         except Exception:
-            time.sleep(2)
-            continue
-        time.sleep(0.5)
+            pass
+        
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+def run():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), WebhookHandler)
+    print(f"Server {port} portunda işləyir...")
+    server.serve_forever()
 
 if __name__ == "__main__":
-    main()
+    run()
+                        
