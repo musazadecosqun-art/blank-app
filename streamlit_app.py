@@ -1,25 +1,10 @@
 import os
-import time
 import json
 import urllib.request
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from threading import Thread
+from flask import Flask, request
 
-# Render port tələbini qarşılamaq və 7/24 aktiv saxlamaq üçün veb server
-class SimpleHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Cosqun Bot is 7/24 Active!")
+app = Flask(__name__)
 
-def run_server():
-    port = int(os.environ.get("PORT", 10000))
-    server = HTTPServer(("0.0.0.0", port), SimpleHandler)
-    server.serve_forever()
-
-Thread(target=run_server, daemon=True).start()
-
-# Telegram Bot Tokeni
 TOKEN = "8945130144:AAFy3yBd_VSSsc4zujbqz0ZuLkf_D-rVWUc"
 URL = f"https://api.telegram.org/bot{TOKEN}/"
 
@@ -62,43 +47,36 @@ def generate_full_analysis(query):
 ---
 ✨ <b>Coşqun Təxmini-</b>"""
 
-def main():
-    offset = 0
-    print("Coşqun 7/24 Analiz Botu işləyir...")
-    while True:
-        try:
-            url = f"{URL}getUpdates?offset={offset}&timeout=30"
-            req = urllib.request.urlopen(url, timeout=35)
-            updates = json.loads(req.read().decode("utf-8"))
-            
-            if updates and isinstance(updates, dict) and "result" in updates:
-                for update in updates["result"]:
-                    update_id = update["update_id"]
-                    offset = update_id + 1  # Mesajın təkrarlanmaması üçün offset dərhal yenilənir
-                    
-                    message = update.get("message")
-                    if message and "text" in message:
-                        chat_id = message["chat"]["id"]
-                        user_text = message["text"].strip()
-                        
-                        if user_text.lower() == "/start":
-                            reply_text = (
-                                "<b>⚽ Salam! Coşqun Peşəkar Analiz Botuna xoş gəlmisiniz.</b>\n\n"
-                                "Mənə istənilən matçın linkini və ya adını göndərin; "
-                                "komandaları, zədələri, turnir cədvəlini və bukmeker əmsallarını "
-                                "nəzərə alaraq <b>bütün alt/üst faizləri, dəqiq hesab və korner proqnozlarını</b> "
-                                "birbaşa təqdim edim!\n\n"
-                                "<i>Coşqun Təxmini-</i>"
-                            )
-                            send_message(chat_id, reply_text)
-                        else:
-                            analysis = generate_full_analysis(user_text)
-                            send_message(chat_id, analysis)
-        except Exception as e:
-            time.sleep(2)
-            continue
-        time.sleep(0.5)
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    json_data = request.get_json(silent=True)
+    if json_data and "message" in json_data:
+        message = json_data["message"]
+        chat_id = message["chat"]["id"]
+        user_text = message.get("text", "").strip()
+        
+        if user_text:
+            if user_text.lower() == "/start":
+                reply_text = (
+                    "<b>⚽ Salam! Coşqun Peşəkar Analiz Botuna xoş gəlmisiniz.</b>\n\n"
+                    "Mənə istənilən matçın linkini və ya adını göndərin; "
+                    "komandaları, zədələri, turnir cədvəlini və bukmeker əmsallarını "
+                    "nəzərə alaraq <b>bütün alt/üst faizləri, dəqiq hesab və korner proqnozlarını</b> "
+                    "birbaşa təqdim edim!\n\n"
+                    "<i>Coşqun Təxmini-</i>"
+                )
+                send_message(chat_id, reply_text)
+            else:
+                analysis = generate_full_analysis(user_text)
+                send_message(chat_id, analysis)
+                
+    return "OK", 200
+
+@app.route("/")
+def index():
+    return "Cosqun Bot Webhook is Active!"
 
 if __name__ == "__main__":
-    main()
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
     
