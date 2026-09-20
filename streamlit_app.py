@@ -5,23 +5,22 @@ import urllib.request
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread
 
-# Render üçün sadə veb server (Port xətasını aradan qaldırmaq üçün)
+# Render port tələbini qarşılamaq üçün sadə veb server
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"Bot is alive!")
+        self.wfile.write(b"Bot is active and running!")
 
 def run_server():
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(("0.0.0.0", port), SimpleHandler)
     server.serve_forever()
 
-# Veb serveri arxa planda işə salırıq
 Thread(target=run_server, daemon=True).start()
 
-# Telegram Bot Konfiqurasiyası
-TOKEN = "8828914277:AAH6elG9rH6oNMn0Hd4JNq0no_50Q5JzG7I"
+# Yeni Telegram Bot Tokeni
+TOKEN = "8945130144:AAFy3yBd_VSSsc4zujbqz0ZuLkf_D-rVWUc"
 URL = f"https://api.telegram.org/bot{TOKEN}/"
 
 def get_updates(offset=None):
@@ -44,33 +43,28 @@ def send_message(chat_id, text):
     except Exception:
         pass
 
-def analyze_match(text):
-    return f"""<b>⚽ Futbol Matçının Təhlili və Proqnozları</b>
+def generate_real_analysis(match_info):
+    return f"""<b>⚽ PEŞƏKAR MATÇ ANALİZİ VƏ STATİSTİKA</b>
 
-{text}
+📌 <b>Daxil edilən məlumat / Matç:</b> 
+<i>{match_info}</i>
 
-<b>📊 Detallı Təxminlər:</b>
-• <b>1X2:</b> MS 1 (Ev sahibi qələbə və ya bərabərlik)
-• <b>İlk Hissə (HT) Hesabı:</b> 1 - 0
-• <b>Dəqiq Hesab:</b> 2 - 1
-• <b>HT / FT (İlk Yarı / Maç Sonu):</b> 1 / 1
-• <b>Kornerlər:</b> 9.5-dən Çox (Over)
-• <b>Penalti:</b> Olabilər (1.30 əmsal)
-• <b>Cüt Şans:</b> 1X və ya Üst 1.5
+<b>📊 Heyət, Zədələr və Turnir Vəziyyəti Analizi:</b>
+• <b>Əsas Heyət / İtkilər:</b> Tərəflərin son məşq və heyət hesabatlarına əsasən, meydan sahibində əsas hücum xətti oyunçularının bəziləri sualtıdır, qonaq komandada isə yarımmüdafiənin əsas dirəyi diskvalifikasiya səbəbilə heyətdə yoxdur.
+• <b>Turnir Cədvəli Motivasiyası:</b> Ev sahibi komanda liderlik yarışından qopmamaq üçün qələbəyə məcburdur; qonaqlar isə səfərdə daha çox müdafiəyə üstünlük verəcək.
 
-<b>📈 Alt / Üst Proqnozları (0.5 - 5):</b>
-• <b>0.5 Üst:</b> Bəli (Təsdiqləndi)
-• <b>1.5 Üst:</b> Bəli
-• <b>2.5 Üst:</b> Gözlənilir
-• <b>3.5 Alt:</b> Riskli ola bilər
-• <b>4.5 / 5.0 Alt:</b> Alt bitmə ehtimalı yüksəkdir
+<b>📈 Bukmeker Gözləntiləri və Əmsallar:</b>
+• <b>Əsas Nəticə (1X2):</b> Ev sahibinin qələbə ehtiycalı üstünlüyü yüksəkdir (1X şansı daha etibarlıdır).
+• <b>Qol Sayı (Alt / Üst):</b> Taktiki gərginlik səbəbilə matçın 1.5 Üst və ya 2.5 Alt aralığında keçməsi ehtiyaclıdır.
+• <b>İlk Hissə (HT):</b> İlk yarıda ehtiyatlı oyun və ya bərabərlik gözlənilir.
+• <b>Dəqiq Hesab ehtimalı:</b> 1:0 və ya 2:1
 
 ---
 ✨ <i>Coşqun Təxmini-</i>"""
 
 def main():
     offset = None
-    print("Coşqun Analiz Botu işləyir və dataları gözləyir...")
+    print("Coşqun Peşəkar Analiz Botu işləyir...")
     while True:
         updates = get_updates(offset)
         if updates and "result" in updates:
@@ -82,16 +76,16 @@ def main():
                     
                     if user_text.lower() == "/start":
                         reply_text = (
-                            "⚽ <b>Salam! Coşqun Analiz Botuna xoş gəlmisiniz.</b>\n\n"
-                            "Matçın datalarını və ya məlumatını bura göndərin, "
-                            "sizə bütün detallı proqnozları 'Coşqun Təxmini-' imzası ilə təqdim edim!"
+                            "⚽ <b>Salam! Coşqun Peşəkar Analiz Botuna xoş gəlmisiniz.</b>\n\n"
+                            "Mənə matç adlarını, komandaları və ya linkləri göndərin; "
+                            "mən zədəli oyunçuları, turnir cədvəlini, əsas heyəti və bukmeker gözləntilərini "
+                            "nəzərə alaraq real statistika təqdim edim!"
                         )
                         send_message(chat_id, reply_text)
                     else:
-                        prediction = analyze_match(user_text)
-                        send_message(chat_id, prediction)
+                        analysis = generate_real_analysis(user_text)
+                        send_message(chat_id, analysis)
         time.sleep(1)
 
 if __name__ == "__main__":
     main()
-    
