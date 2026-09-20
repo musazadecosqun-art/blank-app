@@ -23,17 +23,6 @@ Thread(target=run_server, daemon=True).start()
 TOKEN = "8945130144:AAFy3yBd_VSSsc4zujbqz0ZuLkf_D-rVWUc"
 URL = f"https://api.telegram.org/bot{TOKEN}/"
 
-def get_updates(offset=None):
-    url = URL + "getUpdates?timeout=30"
-    if offset:
-        url += f"&offset={offset}"
-    try:
-        req = urllib.request.urlopen(url, timeout=35)
-        return json.loads(req.read().decode("utf-8"))
-    except Exception:
-        time.sleep(2)
-        return None
-
 def send_message(chat_id, text):
     url = URL + "sendMessage"
     data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode("utf-8")
@@ -74,14 +63,19 @@ def generate_full_analysis(query):
 ✨ <b>Coşqun Təxmini-</b>"""
 
 def main():
-    offset = None
+    offset = 0
     print("Coşqun 7/24 Analiz Botu işləyir...")
     while True:
-        updates = get_updates(offset)
-        if updates and isinstance(updates, dict) and "result" in updates:
-            for update in updates["result"]:
-                try:
-                    offset = update["update_id"] + 1
+        try:
+            url = f"{URL}getUpdates?offset={offset}&timeout=30"
+            req = urllib.request.urlopen(url, timeout=35)
+            updates = json.loads(req.read().decode("utf-8"))
+            
+            if updates and isinstance(updates, dict) and "result" in updates:
+                for update in updates["result"]:
+                    update_id = update["update_id"]
+                    offset = update_id + 1  # Mesajın təkrarlanmaması üçün offset dərhal yenilənir
+                    
                     message = update.get("message")
                     if message and "text" in message:
                         chat_id = message["chat"]["id"]
@@ -100,9 +94,10 @@ def main():
                         else:
                             analysis = generate_full_analysis(user_text)
                             send_message(chat_id, analysis)
-                except Exception:
-                    continue
-        time.sleep(1)
+        except Exception as e:
+            time.sleep(2)
+            continue
+        time.sleep(0.5)
 
 if __name__ == "__main__":
     main()
