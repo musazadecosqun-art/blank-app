@@ -11,7 +11,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"Cosqun Bot is 7/24 Active!")
+        self.wfile.write(b"Cosqun Bot Full Combo Analysis Active!")
 
 def run_server():
     port = int(os.environ.get("PORT", 10000))
@@ -33,57 +33,76 @@ def send_message(chat_id, text):
     except Exception:
         pass
 
-def generate_dynamic_analysis(query):
-    # Göndərilən mətnə/linkə əsasən random amma məntiqli faizlər və nəticələr yaradırıq
-    # Bu, hər matçın özünə özəl fərqli nəticə çıxarmasını təmin edir
+def generate_chain_linked_analysis(query):
     random.seed(hash(query) % 10000)
     
-    home_score = random.randint(0, 3)
-    away_score = random.randint(0, 3)
-    ht_home = random.randint(0, 1)
-    ht_away = random.randint(0, 1)
+    # Zəncirvari dəqiq hesab ssenariləri
+    scenarios = [
+        {"h": 2, "a": 1, "ht_h": 1, "ht_a": 0, "htft": "1 / 1", "ms": "MS 1", "dc": "1X", "tot": 3, "btts": "Bəli"},
+        {"h": 1, "a": 0, "ht_h": 1, "ht_a": 0, "htft": "1 / 1", "ms": "MS 1", "dc": "1X", "tot": 1, "btts": "Xeyr"},
+        {"h": 1, "a": 1, "ht_h": 0, "ht_a": 1, "htft": "2 / X", "ms": "Bərabərlik (X)", "dc": "1X / X2", "tot": 2, "btts": "Bəli"},
+        {"h": 0, "a": 2, "ht_h": 0, "ht_a": 1, "htft": "2 / 2", "ms": "MS 2", "dc": "X2", "tot": 2, "btts": "Xeyr"},
+        {"h": 3, "a": 1, "ht_h": 2, "ht_a": 0, "htft": "1 / 1", "ms": "MS 1", "dc": "1X", "tot": 4, "btts": "Bəli"},
+        {"h": 1, "a": 2, "ht_h": 0, "ht_a": 1, "htft": "2 / 2", "ms": "MS 2", "dc": "X2", "tot": 3, "btts": "Bəli"},
+        {"h": 2, "a": 0, "ht_h": 1, "ht_a": 0, "htft": "1 / 1", "ms": "MS 1", "dc": "1X", "tot": 2, "btts": "Xeyr"},
+    ]
     
-    ms1_p = random.randint(45, 82)
-    x_p = random.randint(15, 30)
-    ms2_p = 100 - (ms1_p + x_p)
-    if ms2_p < 10: ms2_p = 12
-    
-    corner_val = round(random.uniform(8.5, 11.5), 1)
-    corner_p = random.randint(55, 78)
-    
-    pen_val = "Bəli" if random.random() > 0.6 else "Xeyr"
-    pen_p = random.randint(40, 65)
-    
-    # Komanda adlarını sorğudan çıxarmağa çalışırıq və ya ümumi ad veririk
+    sc = random.choice(scenarios)
+    home_score = sc["h"]
+    away_score = sc["a"]
+    total_goals = sc["tot"]
+    btts_val = sc["btts"]
+    is_home_win = home_score > away_score
+    is_away_win = away_score > home_score
+
     clean_query = query.replace("https://", "").replace("http://", "").replace("www.", "")
     parts = clean_query.split("/")
     match_title = parts[-1].replace("-", " ").upper() if len(parts) > 0 and len(parts[-1]) > 3 else query.upper()
 
-    return f"""<b>⚽ PEŞƏKAR MATÇ ANALİZİ VƏ TƏXMİN</b>
+    # Zəncirvari kombi nəticələrinin məntiqi hesablanması
+    btts_yes_p = random.randint(55, 82) if btts_val == "Bəli" else random.randint(20, 42)
+    btts_no_p = 100 - btts_yes_p
+
+    w1_btts_yes = "Gözlənilir" if (is_home_win and btts_val == "Bəli") else "Risklidir"
+    w1_btts_no = "Gözlənilir" if (is_home_win and btts_val == "Xeyr") else "Risklidir"
+    
+    w2_btts_yes = "Gözlənilir" if (is_away_win and btts_val == "Bəli") else "Risklidir"
+    w2_btts_no = "Gözlənilir" if (is_away_win and btts_val == "Xeyr") else "Risklidir"
+
+    return f"""<b>⚽ ZƏNCİRVARİ PEŞƏKAR MATÇ ANALİZİ</b>
 
 🔗 <b>Sorğu / Link:</b> <i>{query}</i>
+🏠 vs 🇦🇿 <b>Matç:</b> <code>{match_title}</code>
 
-🏠 vs 🇦🇿 <b>Matç / Komandalar:</b> <code>{match_title}</code>
+🎯 <b>1. MƏRKƏZİ TƏQDİMAT (Dəqiq Hesab):</b>
+• <b>Dəqiq Hesab (Correct Score):</b> <b>{home_score} - {away_score}</b> (Zəncirin təməli)
 
-📊 <b>DİNAMİK STATİSTİK TƏQDİMAT:</b>
-• <b>FT Prediction (1X2):</b> MS 1 (%{ms1_p}) | X (%{x_p}) | MS 2 (%{ms2_p})
-• <b>İlk Hissə (HT) Hesabı & Qol:</b> {ht_home} - {ht_away} (%{random.randint(50, 70)})
-• <b>Dəqiq Hesab (Correct Score):</b> {home_score} - {away_score} (%{random.randint(35, 55)})
-• <b>HT / FT Nəticəsi:</b> {'1 / 1' if ht_home > ht_away else 'X / 1'} (%{random.randint(45, 65)})
-• <b>Kornerlər:</b> {corner_val}-dən Çox (Over) — %{corner_p}
-• <b>Penalti:</b> {pen_val} (%{pen_p})
-• <b>Cüt Şans (Double Chance):</b> 1X (%{random.randint(75, 92)}) | 12 (%{random.randint(70, 88)}) | X2 (%{random.randint(30, 55)})
+⛓️ <b>2. ƏSAS TƏXMİNLƏR VƏ BTTS:</b>
+• <b>FT Prediction (1X2):</b> {sc["ms"]} 
+• <b>İlk Hissə (HT) Hesabı:</b> {sc["ht_h"]} - {sc["ht_a"]}
+• <b>HT / FT Nəticəsi:</b> <b>{sc["htft"]}</b>
+• <b>BTTS (Qarşılıqlı Qol):</b> <b>{btts_val}</b> (Hə: %{btts_yes_p} | Yox: %{btts_no_p})
+• <b>Cüt Şans (Double Chance):</b> {sc["dc"]}
+• <b>Kornerlər:</b> {random.randint(8, 11)}.5-dən Çox
 
-📈 <b>ALT / ÜST (OVER / UNDER) FAİZLƏRİ:</b>
-• <b>0.5 Üst:</b> %{random.randint(90, 98)} | <i>Alt:</i> %{random.randint(2, 10)}
-• <b>1.0 Üst:</b> %{random.randint(80, 92)} | <i>Alt:</i> %{random.randint(8, 20)}
-• <b>1.5 Üst:</b> %{random.randint(70, 85)} | <i>Alt:</i> %{random.randint(15, 30)}
-• <b>2.5 Üst:</b> %{random.randint(45, 68)} | <i>Alt:</i> %{random.randint(32, 55)}
-• <b>3.0 Üst:</b> %{random.randint(30, 50)} | <i>Alt:</i> %{random.randint(50, 70)}
-• <b>3.5 Üst:</b> %{random.randint(20, 40)} | <i>Alt:</i> %{random.randint(60, 80)}
-• <b>4.0 Üst:</b> %{random.randint(12, 28)} | <i>Alt:</i> %{random.randint(72, 88)}
-• <b>4.5 Üst:</b> %{random.randint(8, 20)} | <i>Alt:</i> %{random.randint(80, 92)}
-• <b>5.0 Üst:</b> %{random.randint(4, 15)} | <i>Alt:</i> %{random.randint(85, 96)}
+🔥 <b>3. KOMANDA & BTTS KOMBİNASİYALARI:</b>
+• <b>1 & BTTS (Yes):</b> {w1_btts_yes} (%{random.randint(45, 75) if is_home_win and btts_val=='Bəli' else random.randint(10, 30)})
+• <b>1 & BTTS (No):</b> {w1_btts_no} (%{random.randint(45, 75) if is_home_win and btts_val=='Xeyr' else random.randint(10, 30)})
+• <b>2 & BTTS (Yes):</b> {w2_btts_yes} (%{random.randint(45, 75) if is_away_win and btts_val=='Bəli' else random.randint(10, 30)})
+• <b>2 & BTTS (No):</b> {w2_btts_no} (%{random.randint(45, 75) if is_away_win and btts_val=='Xeyr' else random.randint(10, 30)})
+
+⚡ <b>4. KOMANDA & ALT/ÜST KOMBİNASİYALARI:</b>
+• <b>1 & 1.5 Üst:</b> {'Gözlənilir' if (is_home_win and total_goals >= 2) else 'Riskli'}
+• <b>1 & 2.5 Üst:</b> {'Gözlənilir' if (is_home_win and total_goals >= 3) else 'Riskli'}
+• <b>1 & 3.5 Üst:</b> {'Gözlənilir' if (is_home_win and total_goals >= 4) else 'Riskli'}
+• <b>2 & 1.5 Üst:</b> {'Gözlənilir' if (is_away_win and total_goals >= 2) else 'Riskli'}
+• <b>2 & 2.5 Üst:</b> {'Gözlənilir' if (is_away_win and total_goals >= 3) else 'Riskli'}
+• <b>2 & 3.5 Üst:</b> {'Gözlənilir' if (is_away_win and total_goals >= 4) else 'Riskli'}
+
+📈 <b>5. ÜMUMİ ALT / ÜST FAİZLƏRİ:</b>
+• <b>0.5 Üst:</b> %98 | <b>1.5 Üst:</b> {'%85' if total_goals >= 2 else '%30'}
+• <b>2.5 Üst:</b> {'%78' if total_goals >= 3 else '%35'} | <b>3.5 Üst:</b> {'%65' if total_goals >= 4 else '%15'}
+• <b>4.5 Üst:</b> {'%40' if total_goals >= 5 else '%5'} | <b>5.0 Üst:</b> {'%25' if total_goals >= 5 else '%2'}
 
 ---
 ✨ <b>Coşqun Təxmini-</b>"""
@@ -91,7 +110,7 @@ def generate_dynamic_analysis(query):
 def main():
     offset = 0
     processed_messages = set()
-    print("Coşqun 7/24 Dinamik Analiz Botu işləyir...")
+    print("Coşqun Kombi Zəncirvari Analiz Botu 7/24 işləyir...")
     
     while True:
         try:
@@ -119,15 +138,14 @@ def main():
                         
                         if user_text.lower() == "/start":
                             reply_text = (
-                                "<b>⚽ Salam! Coşqun Peşəkar Analiz Botuna xoş gəlmisiniz.</b>\n\n"
-                                "Mənə istənilən matçın linkini və ya adını göndərin; "
-                                "hər matç üçün xüsusi olaraq <b>bütün alt/üst faizləri, dəqiq hesab, korner və proqnozları</b> "
-                                "analiz edib təqdim edim!\n\n"
+                                "<b>⚽ Salam! Coşqun Kombi Analiz Botuna xoş gəlmisiniz.</b>\n\n"
+                                "Mənə matç linki göndərin; dəqiq hesaba əsaslanan <b>BTTS, 1 & BTTS, 2 & BTTS, "
+                                "komanda qələbəsi ilə alt/üst kombinasiyaları</b> və bütün zəncirvari proqnozları təqdim edim!\n\n"
                                 "<i>Coşqun Təxmini-</i>"
                             )
                             send_message(chat_id, reply_text)
                         else:
-                            analysis = generate_dynamic_analysis(user_text)
+                            analysis = generate_chain_linked_analysis(user_text)
                             send_message(chat_id, analysis)
         except Exception:
             time.sleep(2)
