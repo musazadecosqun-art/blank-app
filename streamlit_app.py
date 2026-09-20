@@ -2,6 +2,7 @@ import os
 import json
 import urllib.request
 import random
+import re
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 TOKEN = "8945130144:AAFy3yBd_VSSsc4zujbqz0ZuLkf_D-rVWUc"
@@ -9,18 +10,69 @@ URL = f"https://api.telegram.org/bot{TOKEN}/"
 
 def send_message(chat_id, text):
     url = URL + "sendMessage"
-    data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode("utf-8")
+    data = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "HTML"}.encode("utf-8") if False else {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}).encode("utf-8")
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     try:
         urllib.request.urlopen(req, timeout=10)
     except Exception:
         pass
 
-def generate_vba_linked_analysis(query):
-    # VBA-dakı məntiqi simulyasiya etmək üçün seed
+def extract_match_details(query):
+    query = query.strip()
+    clean_query = query.replace("https://", "").replace("http://", "").replace("www.", "")
+    parts = [p for p in clean_query.split("/") if p]
+    
+    home_team = ""
+    away_team = ""
+    liga_info = "Beynəlxalq Matç / Liqa"
+    
+    # Ağıllı link (slug) təmizləyicisi
+    match_slug = ""
+    for part in parts:
+        if "-" in part and not part.isdigit() and len(part) > 5:
+            match_slug = part
+            break
+            
+    if match_slug:
+        # URL içindəki xüsusi simvolları və ID-ləri təmizləyirik
+        sub_parts = match_slug.split("-")
+        text_parts = [p for p in sub_parts if not p.isdigit() and len(p) > 1 and not p.startswith("id") and not p.startswith("match")]
+        
+        if len(text_parts) >= 2:
+            if "vs" in text_parts:
+                idx = text_parts.index("vs")
+                home_team = " ".join(text_parts[:idx]).title()
+                away_team = " ".join(text_parts[idx+1:]).title()
+            else:
+                mid = len(text_parts) // 2
+                home_team = " ".join(text_parts[:mid]).title()
+                away_team = " ".join(text_parts[mid:]).title()
+        elif len(text_parts) == 1:
+            home_team = text_parts[0].title()
+            away_team = "Rəqib"
+            
+    # Əgər link deyil, birbaşa mətn kimi yazılıbsa (məsələn: Arsenal - Chelsea)
+    if not home_team or not away_team:
+        if "-" in query:
+            split_q = query.split("-")
+            home_team = split_q[0].strip().title()
+            away_team = split_q[1].strip().split()[0].title()
+        elif "vs" in query.lower():
+            split_q = re.split(r'\s+vs\s+', query, flags=re.IGNORECASE)
+            home_team = split_q[0].strip().title()
+            away_team = split_q[1].strip().title()
+        else:
+            home_team = query.title() if len(query) > 2 else "Ev Sahibi"
+            away_team = "Qonaq Komanda"
+            
+    return home_team, away_team, liga_info
+
+def generate_chain_linked_analysis(query):
     random.seed(hash(query) % 10000)
     
-    # Zəncirvari dəqiq hesab və matç ssenariləri (VBA modelinə uyğun)
+    ev_komanda, qonaq_komanda, liga_info = extract_match_details(query)
+    
+    # Zəncirvari dəqiq hesab ssenariləri
     scenarios = [
         {"h": 2, "a": 1, "ht_h": 1, "ht_a": 0, "htft": "1/1", "ms": "1 (Home)", "tot": 3, "btts": "YES", "dc": "1X"},
         {"h": 1, "a": 0, "ht_h": 1, "ht_a": 0, "htft": "1/1", "ms": "1 (Home)", "tot": 1, "btts": "NO", "dc": "1X"},
@@ -39,20 +91,6 @@ def generate_vba_linked_analysis(query):
     htft_val = sc["htft"]
     x12_val = sc["ms"]
     
-    # Komanda adlarının təyini (Əgər link və ya ad verilibsə)
-    clean_query = query.replace("https://", "").replace("http://", "").replace("www.", "")
-    parts = clean_query.split("/")
-    if len(parts) > 0 and len(parts[-1]) > 3 and "-" in parts[-1]:
-        teams = parts[-1].split("-")
-        ev_komanda = teams[0].capitalize()
-        qonaq_komanda = teams[1].capitalize()
-    else:
-        ev_komanda = "Bayer Leverkusen"
-        qonaq_komanda = "RB Leipzig"
-
-    liga_info = "Germany Bundesliga"
-    
-    # Alt/Üst limitin təyini (VBA məntiqi)
     if tot_goles <= 2:
         over_limit = "2.5 Under"
     elif tot_goles == 3:
@@ -67,7 +105,6 @@ def generate_vba_linked_analysis(query):
     else:
         pred_text = f"Heç-heçə / X & {over_limit}"
 
-    # Kornerlər və Penalti
     ev_corner = round(random.uniform(4.5, 6.2), 1)
     qonaq_corner = round(random.uniform(3.8, 5.5), 1)
     corner_total = ev_corner + qonaq_corner
@@ -81,7 +118,6 @@ def generate_vba_linked_analysis(query):
 
     penalty_val = "YES" if (tot_goles >= 3 or btts_val == "YES") else "NO"
 
-    # Kombinasiyalar (1 & BTTS, 2 & BTTS, 1 & Over və s.)
     is_home_win = ev_hesab > qonaq_hesab
     is_away_win = qonaq_hesab > ev_hesab
 
@@ -90,12 +126,12 @@ def generate_vba_linked_analysis(query):
     w2_btts_yes = "Gözlənilir" if (is_away_win and btts_val == "YES") else "Risklidir"
     w2_btts_no = "Gözlənilir" if (is_away_win and btts_val == "NO") else "Risklidir"
 
-    return f"""<b>⚽ ZƏNCİRVARİ VBA & ANALİZ MODELİ</b>
+    return f"""<b>⚽ ZƏNCİRVARİ DƏQİQ ANALİZ MODELİ</b>
 
-🔗 <b>Liqa:</b> <i>{liga_info}</i>
+🔗 <b>Daxil edilən Link / Mətn:</b> <i>{query}</i>
 🏠 <b>{ev_komanda}</b> vs 🇦🇿 <b>{qonaq_komanda}</b>
 
-🎯 <b>1. MƏRKƏZİ DƏQİQ HESAB (VBA Engine):</b>
+🎯 <b>1. MƏRKƏZİ DƏQİQ HESAB:</b>
 • <b>Dəqiq Hesab:</b> <b>{ev_hesab} - {qonaq_hesab}</b>
 • <b>İlk Hissə (HT) Hesabı:</b> {sc["ht_h"]} - {sc["ht_a"]}
 • <b>HT / FT Nəticəsi:</b> <b>{htft_val}</b>
@@ -126,13 +162,13 @@ def generate_vba_linked_analysis(query):
 📌 <b>Yekun Təxmin:</b> <code>{pred_text}</code>
 
 ---
-✨ <b>Coşqun VBA Zəncirvari Sistem-</b>"""
+✨ <b>Coşqun Zəncirvari Sistem-</b>"""
 
 class WebhookHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"VBA Chain Linked Bot is Active!")
+        self.wfile.write(b"Smart Match Parser Bot is Active!")
 
     def do_POST(self):
         content_length = int(self.headers.get('Content-Length', 0))
@@ -147,14 +183,14 @@ class WebhookHandler(BaseHTTPRequestHandler):
                 if user_text:
                     if user_text.lower() == "/start":
                         reply_text = (
-                            "<b>⚽ Salam! Coşqun VBA Zəncirvari Analiz Botuna xoş gəlmisiniz.</b>\n\n"
-                            "Mənə matç linki və ya komanda adları göndərin; VBA modelinə əsaslanan "
-                            "dəqiq hesab, BTTS, komanda kombinasiyaları və korner analizlərini təqdim edim!\n\n"
-                            "<i>Coşqun VBA Sistem-</i>"
+                            "<b>⚽ Salam! Coşqun Ağıllı Analiz Botuna xoş gəlmisiniz.</b>\n\n"
+                            "Mənə istənilən matç linkini və ya komanda adını göndərin; linki tam mənimsəyib "
+                            "komandaları dəqiq müəyyən edəcək və bütün zəncirvari analizləri təqdim edəcəyəm!\n\n"
+                            "<i>Coşqun Sistem-</i>"
                         )
                         send_message(chat_id, reply_text)
                     else:
-                        analysis = generate_vba_linked_analysis(user_text)
+                        analysis = generate_chain_linked_analysis(user_text)
                         send_message(chat_id, analysis)
         except Exception:
             pass
