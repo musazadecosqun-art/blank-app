@@ -10,7 +10,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"Coşqun Bot is active!")
+        self.wfile.write(b"Bot is active!")
 
 def run_server():
     port = int(os.environ.get("PORT", 10000))
@@ -44,27 +44,27 @@ def send_message(chat_id, text):
         pass
 
 def generate_real_analysis(match_info):
-    return f"""<b>⚽ PEŞƏKAR MATÇ ANALİZİ VƏ STATİSTİKA</b>
+    return f"""<b>COSQUN PESEKAR MATÇ ANALİZİ VƏ STATİSTİKA</b>
 
-📌 <b>Matç / Sorğu:</b> 
+<b>Matç / Sorğu:</b> 
 <i>{match_info}</i>
 
-<b>📊 Heyət, Zədələr və Turnir Vəziyyəti:</b>
+<b>Heyət, Zədələr və Turnir Vəziyyəti:</b>
 • <b>Əsas Heyət və İtkilər:</b> Komandaların son məşq hesabatlarına və ehtimal olunan start 11-liklərinə əsasən, əsas heyət üzvlərindən bəziləri zədə səbəbindən kadrdan kənardadır.
 • <b>Turnir Cədvəli və Motivasiya:</b> Tərəflərin mövqe mübarizəsi taktikaya birbaşa təsir edəcək.
 
-<b>📈 Bukmeker Gözləntiləri və Təxminlər:</b>
+<b>Bukmeker Gözləntiləri və Təxminlər:</b>
 • <b>1X2 Proqnozu:</b> Ev sahibinin qələbəsi və ya 1X şansı yüksəkdir.
-• <b>Qol Sayı (Alt / Üst):</b> 1.5 Üst və ya 2.5 Alt aralığı.
-• <b>İlk Hissə (HT):</b> Ehtiyatlı başlanğıc və ya bərabərlik.
+• <b>Qol Sayı:</b> 1.5 Ust və ya 2.5 Alt aralığı.
+• <b>İlkin Hissə (HT):</b> Ehtiyatlı başlanğıc və ya bərabərlik.
 • <b>Dəqiq Hesab Ehtimalı:</b> 1:0 / 2:1
 
 ---
-✨ <i>Coşqun Təxmini-</i>"""
+<i>Coşqun Təxmini-</i>"""
 
 def main():
     offset = None
-    print("Coşqun Peşəkar Analiz Botu aktivdir və işləyir...")
+    print("Bot aktivdir və işləyir...")
     while True:
         updates = get_updates(offset)
         if updates and isinstance(updates, dict) and "result" in updates:
@@ -78,7 +78,7 @@ def main():
                         
                         if user_text.lower() == "/start":
                             reply_text = (
-                                "⚽ <b>Salam! Coşqun Peşəkar Analiz Botuna xoş gəlmisiniz.</b>\n\n"
+                                "<b>Salam! Cosqun Peşəkar Analiz Botuna xoş gəlmisiniz.</b>\n\n"
                                 "Mənə istənilən matçın adını, linkini və ya məlumatını göndərin; "
                                 "zədəli oyunçuları, turnir cədvəlini, heyətləri və bukmeker əmsallarını "
                                 "nəzərə alaraq dərhal real statistika və proqnoz təqdim edim!"
